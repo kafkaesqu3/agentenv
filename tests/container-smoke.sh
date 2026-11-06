@@ -10,6 +10,9 @@ docker run --rm "$image" bash -ec '
   touch "$HOME/write-test" /workspace/write-test
   test "$(sudo -n id -u)" = 0
   test ! -d "$HOME/.codex/tmp"
+  for file in "$HOME/.claude/CLAUDE.md" "$HOME/.codex/AGENTS.md" "$HOME/.config/opencode/AGENTS.md"; do
+    cmp /opt/agentenv/instructions/AGENTS.md "$file"
+  done
   claude --version
   codex --version
   opencode --version

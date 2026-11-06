@@ -4,6 +4,16 @@ Bare agent installation and environment configuration for a shared golden image.
 Includes Claude Code, Codex, and OpenCode. No skills, MCP servers, hooks, plugins,
 model selections, provider endpoints, or task-specific workflows are installed.
 
+Shared completion instructions in `instructions/AGENTS.md` tell agents to commit
+verified task changes automatically when working inside a Git repository, leave
+unrelated changes untouched, and report the commit hash or a blocker. They do not
+authorize pushing or creating a repository. The installers deploy this file as
+Claude's `CLAUDE.md` and Codex/OpenCode's `AGENTS.md` in their configuration
+directories; OpenCode also references it explicitly in its instruction list.
+These files follow the same replacement-and-backup policy as other baseline assets.
+This applies to native installations and Docker images. Existing installations or
+persistent configuration volumes need a configuration-only run to receive it.
+
 ## Docker image: agentenv-base
 
 The shared image uses `node:24-trixie-slim` (Debian), includes all three agents,

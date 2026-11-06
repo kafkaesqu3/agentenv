@@ -1,6 +1,8 @@
 **
 !install.sh
 !doctor.sh
+!instructions/
+!instructions/AGENTS.md
 !lib/
 !lib/*.mjs
 !lib/install.sh

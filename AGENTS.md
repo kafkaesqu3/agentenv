@@ -9,3 +9,7 @@ This repository is responsible for the following:
 
 Future harnesses (software development, reverse engineering, CUA, web browsing/scraping, system maintenance, data analysis, etc) will all share this project, so any change we make to this project MUST be applicable to all of the above tasks. Any hooks, skills, or instructions placed in this repository MUST be relevant to all agent use cases. 
 
+When finished, commit verified changes belonging to the task without asking for
+separate confirmation. Leave unrelated user changes untouched, do not create empty
+commits, and do not push unless requested. Report the commit hash or any blocker.
+

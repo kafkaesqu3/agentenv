@@ -11,6 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstallTests(unittest.TestCase):
+    def test_shared_completion_instructions_are_installed_for_all_agents(self):
+        self.run_install('--all', '--config-only')
+        expected = (ROOT / 'instructions/AGENTS.md').read_text()
+        for relative in ('claude/CLAUDE.md', 'codex/AGENTS.md', 'config/opencode/AGENTS.md'):
+            self.assertEqual((self.home / relative).read_text(), expected)
+        config = json.loads((self.home / 'config/opencode/opencode.json').read_text())
+        self.assertIn(str(self.home / 'config/opencode/AGENTS.md'), config['instructions'])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT, prefix=".test install ")
         self.addCleanup(self.temp.cleanup)
