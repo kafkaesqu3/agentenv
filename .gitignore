@@ -4,3 +4,5 @@ __pycache__/
 *.tmp.txt
 .validation/
 .DS_Store
+
+.claude/autoharness/
