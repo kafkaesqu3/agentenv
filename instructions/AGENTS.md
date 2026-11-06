@@ -1,3 +1,9 @@
+# Instruction files
+
+Keep shared agent instructions in `AGENTS.md`. Keep `CLAUDE.md` as a small import
+of the corresponding `AGENTS.md` (for example, `@AGENTS.md`), rather than duplicating
+instructions. Update the canonical `AGENTS.md` so only one edit is needed.
+
 # Task completion
 
 When the current working directory is inside a Git repository, automatically
