@@ -66,3 +66,13 @@ minimal foundation, not a migration of an existing agent-shell installation.
 
 Versioned source links explain the behavior examined, not an installation pin.
 Installers always request `latest`.
+# Shared system-tool layer
+
+The follow-on baseline adds explicit Homebrew/apt/WinGet provisioning of general
+file, network, scripting and archive tools before root agent installation. It
+does not import agent-shell's task-specific packages, extensions or policies.
+`--skip-tools` preserves the earlier agent-only entry point; `--config-only`
+still performs no downloads. New `doctor` scripts inspect local readiness, and
+normal root installs write immutable version/path inventories. Inventories are
+observations, not dependency lockfiles. Package managers are prerequisites;
+unsupported systems and distribution Node versions below 22 fail explicitly.

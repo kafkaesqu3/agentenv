@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,6 +42,8 @@ class InstallTests(unittest.TestCase):
         target.chmod(0o755)
 
     def run_install(self, *args, script="install.sh", ok=True):
+        if script == 'install.sh':
+            args = ('--skip-tools', *args)
         result = subprocess.run(["bash", str(ROOT / script), *args], env=self.env,
                                 text=True, capture_output=True)
         if ok:
@@ -56,6 +59,27 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(calls.count("npm install --global @openai/codex@latest"), 2)
         self.assertEqual(calls.count("npm install --global @opencode/cli@latest"), 2)
         self.assertEqual(calls.count("claude-install latest"), 2)
+
+    def test_root_provisions_tools_before_selected_agent_and_records_manifest(self):
+        (self.bin / 'node').symlink_to(shutil.which('node'))
+        self.mock('uname', 'echo Darwin\n')
+        self.mock('brew', 'printf "brew %s\\n" "$*" >> "$CALLS"\n'
+                  'if [ "$1" = --prefix ]; then echo "$HOME"; fi\n')
+        self.env['AGENTENV_STATE_DIR'] = str(self.home / 'state')
+        result = subprocess.run(['bash', str(ROOT / 'install.sh'), '--codex'],
+                                env=self.env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.calls.read_text()
+        self.assertLess(calls.index('brew install'), calls.index('npm install'))
+        self.assertTrue((self.home / 'state/env.sh').exists())
+        manifests = list((self.home / 'state/manifests').glob('*.json'))
+        self.assertEqual(len(manifests), 1)
+        report = json.loads(manifests[0].read_text())
+        self.assertEqual([c['agent'] for c in report['configs']], ['codex'])
+        self.assertTrue(next(t for t in report['tools'] if t['name'] == 'codex')['ok'])
+        paths = (self.home / 'codex/tools-path.sh').read_bytes()
+        self.run_install('--codex', '--config-only')
+        self.assertEqual((self.home / 'codex/tools-path.sh').read_bytes(), paths)
 
     def test_config_only_selects_one_and_keeps_credentials(self):
         target = self.home / "codex"

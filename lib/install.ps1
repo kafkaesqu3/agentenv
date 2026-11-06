@@ -34,6 +34,7 @@ function Install-Agent {
         if (-not (Test-Path -LiteralPath $binary)) { throw "Installed binary not found: $binary" }
         & $binary --version
         if ($LASTEXITCODE -ne 0) { throw "$Agent version check failed." }
+        $env:PATH = $binPath + [IO.Path]::PathSeparator + $env:PATH
     }
     $configArgs = @((Join-Path $AgentEnvRoot 'lib/configure.mjs'), $Agent, '--profile', $PROFILE.CurrentUserAllHosts)
     if ($binPath) { $configArgs += @('--bin', $binPath) }

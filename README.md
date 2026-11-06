@@ -6,17 +6,21 @@ model selections, provider endpoints, or task-specific workflows are installed.
 
 ## Install
 
-Prerequisites: **Node.js 22+ and npm**, with a writable npm global prefix. Bash
-installers support macOS/Linux and WSL; they also require `curl` for Claude.
-PowerShell installers target native Windows (Windows PowerShell 5.1 or PowerShell
-7). Install Git for Windows for agents' shell/git tools. These scripts do not
-bootstrap system package managers, Node, Git, or a development toolchain.
+Root installers provision the shared tools before installing agents. Supported
+package managers are **Homebrew on macOS**, **apt on Debian/Ubuntu (including
+WSL)**, and **WinGet on native Windows**. Install the package manager first.
+Linux system-package installation requires root or sudo; Windows packages may
+request elevation. Individual agent installers and `--skip-tools` require
+**Node.js 22+ and npm**, with a writable npm global prefix.
 
 ```bash
 ./install.sh                         # install/update all three
 ./install.sh --claude --codex         # selected agents
 ./opencode/install.sh                # one independent installer
 ./install.sh --all --config-only      # apply configuration without downloads
+./install.sh --tools-only             # shared tools and inventory, no agents
+./install.sh --skip-tools             # agents on an already provisioned system
+./tools/install.sh --dry-run          # print package operations
 ```
 
 ```powershell
@@ -24,6 +28,9 @@ bootstrap system package managers, Node, Git, or a development toolchain.
 .\install.ps1 -Claude -Codex
 .\opencode\install.ps1
 .\install.ps1 -All -ConfigOnly
+.\install.ps1 -ToolsOnly
+.\install.ps1 -SkipTools
+.\tools\install.ps1 -DryRun
 ```
 
 Every normal run invokes Claude's official native installer with `latest`, or
@@ -54,6 +61,55 @@ agent's generated `env.sh` (or dot-source `env.ps1`) before starting the agent.
 Profiles do not automatically run in every noninteractive environment. Generated
 PATH entries include the installer’s Node executable directory; rerun configuration
 after removing or relocating that Node installation.
+
+## Shared tools and environment checks
+
+The baseline supplies Git, curl and certificate trust, ripgrep, fd, jq, Node/npm,
+Python 3, uv, shells, and archive utilities. macOS uses Node 24 LTS; Windows uses
+WinGet's Node LTS package and Python 3.13; apt uses distribution packages. Package
+versions follow those channels. An apt distribution providing Node below 22
+requires a supported Node LTS installation before agents can be installed. The
+installer does not add third-party apt repositories. Linux installs uv through
+its official installer without changing system Python. Debian's fd command is
+`fdfind`. Windows supplies CA trust and tar; Git supplies Bash and 7-Zip supplies
+archive operations. Browsers, compilers, Docker and cloud CLIs remain out of scope.
+
+```bash
+./doctor.sh                          # all tools and all agents
+./doctor.sh --agents codex --json     # structured report for selected agents
+./doctor.sh --agents none             # shared tools only
+./doctor.sh --manifest auto           # explicitly save a new inventory
+```
+
+PowerShell equivalents use `./doctor.ps1` with the same double-dash arguments.
+Doctor checks versions with bounded local subprocesses, lists duplicate PATH
+candidates, verifies configuration-file presence, and checks filesystem access
+for temporary, configuration, state and log directories. It does not parse or
+certify configuration contents, contact providers, inspect credentials, or test
+certificate trust over the network. Directory checks inspect access to the
+nearest existing ancestor; they do not create probe files and cannot guarantee
+future writes under quotas or changed ACLs. Exit codes: 0 healthy, 1 incomplete,
+2 invalid arguments. Manifest mode returns 0 when recording succeeds, even if
+the recorded `healthy` field is false; use normal doctor mode as a build gate.
+
+Normal root installs save a new manifest under
+`~/.local/state/agentenv/manifests/` (override with `AGENTENV_STATE_DIR`). Each
+records timestamp, OS/architecture, executable paths, versions, missing items,
+and configuration/access checks. Records never overwrite existing files.
+Configuration-only runs create no manifest. These inventories explain what was
+resolved; they are not lockfiles or reproducible-build guarantees. Keep them
+with exported image artifacts. Manifests contain local paths but no credentials.
+
+Tool installation writes shared `env.sh`/`env.ps1` files in the state directory
+and managed profile blocks, independently of agent installation. Existing profile
+content is preserved with backups; symlinked files are rejected. Reopen the shell
+after installation. Noninteractive launchers should source the shared environment
+explicitly. Subsequent agent-only/configuration-only runs preserve tool PATH
+assets. An incomplete manifest explicitly reports unresolved executables.
+
+References: [Homebrew Node 24](https://formulae.brew.sh/formula/node@24),
+[uv installation](https://docs.astral.sh/uv/getting-started/installation/),
+[WinGet installation options](https://learn.microsoft.com/windows/package-manager/winget/install).
 
 ## Configuration locations
 
@@ -113,14 +169,14 @@ behavior, removed scope, compatibility gaps, and source links.
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
-node --test tests/statusline.test.mjs
+node --test tests/*.test.mjs
 pwsh -NoProfile -File tests/powershell-smoke.ps1
 ```
 
 Tests run in disposable homes inside this repository with mocked installers.
 They do not install agents, authenticate accounts, or modify host agent settings.
-Verified here: 11 Python integration tests, 4 Node status-line tests, Bash syntax,
-and PowerShell parsing/configuration smoke tests using PowerShell 7 on macOS.
+The suite covers installer contracts, status rendering and shared diagnostics.
+The initial agent baseline was also checked with PowerShell 7 on macOS.
 The encoding fixtures cover UTF-16 profiles and Unicode paths for PS5 compatibility;
 an actual Windows/PowerShell 5.1 installation and live authenticated agent TUIs
 have not been exercised.
@@ -129,6 +185,8 @@ have not been exercised.
 
 ```text
 install.sh / install.ps1
+doctor.sh / doctor.ps1
+tools/       platform package installers
 claude/      installers, settings.json, statusline.mjs
 codex/       installers, config.toml
 opencode/    installers, opencode.json, cli.json, attribution.md, env.sh/ps1
