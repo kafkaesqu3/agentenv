@@ -26,8 +26,14 @@ case "$(uname -s)" in
       command -v sudo >/dev/null || { echo 'Run as root or install sudo.' >&2; exit 1; }
       elevate=(sudo)
     fi
+    runtime_packages=(nodejs npm)
+    if command -v node >/dev/null && command -v npm >/dev/null &&
+       node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' &&
+       npm --version >/dev/null 2>&1; then
+      runtime_packages=()
+    fi
     run ${elevate[@]+"${elevate[@]}"} apt-get update
-    run ${elevate[@]+"${elevate[@]}"} apt-get install -y git curl ca-certificates ripgrep fd-find jq nodejs npm python3 python3-venv bash tar gzip unzip
+    run ${elevate[@]+"${elevate[@]}"} apt-get install -y git curl ca-certificates ripgrep fd-find jq ${runtime_packages[@]+"${runtime_packages[@]}"} python3 python3-venv bash tar gzip unzip
     if ! $dry; then
       # uv's official installer does not require pip or modify system Python.
       scratch=$(mktemp -d)

@@ -4,7 +4,68 @@ Bare agent installation and environment configuration for a shared golden image.
 Includes Claude Code, Codex, and OpenCode. No skills, MCP servers, hooks, plugins,
 model selections, provider endpoints, or task-specific workflows are installed.
 
-## Install
+## Docker image: agentenv-base
+
+The shared image uses `node:24-trixie-slim` (Debian), includes all three agents,
+and runs as `agent` (UID/GID 1000) with passwordless sudo. Its home is
+`/home/agent`, working directory is `/workspace`, and default command is Bash.
+
+```bash
+docker build -t agentenv-base .
+docker run --rm -it agentenv-base
+docker run --rm -it -v "$PWD:/workspace" agentenv-base codex
+docker run --rm -it -v "$PWD:/workspace" agentenv-base claude
+docker run --rm -it -v "$PWD:/workspace" agentenv-base opencode
+docker run --rm agentenv-base bash /opt/agentenv/doctor.sh
+docker run --rm --user root agentenv-base bash -c 'id'
+bash tests/container-smoke.sh agentenv-base
+```
+
+Use `docker build --pull --no-cache -t agentenv-base .` to refresh the parent,
+system packages, and latest agent releases. Normal Docker cache reuse does not
+check upstream agent versions. Override the parent with `--build-arg
+BASE_IMAGE=node:24-trixie-slim`; alternatives must provide Debian apt, Node 22+,
+npm, and the parent's `node` user/group. These are moving version tags; the
+inventory under `/home/agent/.local/state/agentenv/manifests/` records what each
+build installed. Doctor is also a mandatory build health check.
+
+The entrypoint loads shared and agent environment files before executing commands.
+`docker exec` and downstream Dockerfile `RUN` instructions bypass it; invoke
+`/opt/agentenv/docker/entrypoint.sh COMMAND...` when those environments are needed.
+Core executable paths are also set in image metadata.
+
+Mount workspaces explicitly. Startup preserves mount ownership; on Linux the
+mounted files must be accessible to UID/GID 1000, or you can explicitly run as
+root. Root execution keeps the image's `/home/agent` environment. No credentials
+are included. Authenticate at runtime and persist selected configuration/state
+directories as needed. For example, a fresh Docker named volume initializes from
+the image's existing directory:
+
+```bash
+docker run --rm -it -v agentenv-codex:/home/agent/.codex \
+  -v "$PWD:/workspace" agentenv-base codex
+```
+
+Existing volumes and bind mounts hide the image's files at their mount points.
+Do not replace the entire `/home/agent`: it contains installed executables as well
+as configuration. Mounts over configuration directories must retain or provision
+their generated `env.sh` and baseline assets. The entrypoint fails clearly if an
+environment file is missing. Configuration-directory overrides follow the native
+installer conventions and require provisioning first; startup never rewrites
+configuration. Persistent configurations do not automatically receive later image
+updates; apply `/opt/agentenv/install.sh --config-only` deliberately when needed.
+
+Downstream images add their own task-specific dependencies:
+
+```dockerfile
+FROM agentenv-base
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends YOUR_PACKAGES \
+    && rm -rf /var/lib/apt/lists/*
+USER agent
+```
+
+## Native installation
 
 Root installers provision the shared tools before installing agents. Supported
 package managers are **Homebrew on macOS**, **apt on Debian/Ubuntu (including
@@ -69,7 +130,9 @@ Python 3, uv, shells, and archive utilities. macOS uses Node 24 LTS; Windows use
 WinGet's Node LTS package and Python 3.13; apt uses distribution packages. Package
 versions follow those channels. An apt distribution providing Node below 22
 requires a supported Node LTS installation before agents can be installed. The
-installer does not add third-party apt repositories. Linux installs uv through
+installer does not add third-party apt repositories. Apt preserves an existing
+working Node 22+ and npm installation instead of installing a redundant runtime.
+Linux installs uv through
 its official installer without changing system Python. Debian's fd command is
 `fdfind`. Windows supplies CA trust and tar; Git supplies Bash and 7-Zip supplies
 archive operations. Browsers, compilers, Docker and cloud CLIs remain out of scope.

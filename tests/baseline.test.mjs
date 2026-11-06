@@ -4,6 +4,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 const script = new URL('../lib/doctor.mjs', import.meta.url);
+for(const scenario of ['suitable','old','missing','npm-missing','npm-broken']) test(`apt runtime selection: ${scenario}`,()=>{
+ const dir=fs.mkdtempSync(path.join(process.cwd(),'.test-runtime-'));
+ try{
+  const scripts={uname:'echo Linux',id:'echo 0','apt-get':'exit 99'};
+  if(scenario==='old') scripts.node='exit 1';
+  else if(scenario!=='missing') fs.symlinkSync(process.execPath,path.join(dir,'node'));
+  if(scenario!=='npm-missing') scripts.npm=scenario==='npm-broken'?'exit 1':'echo 10.0.0';
+  for(const [name,body] of Object.entries(scripts)) fs.writeFileSync(path.join(dir,name),'#!/bin/sh\n'+body+'\n',{mode:0o755});
+  const r=spawnSync('/bin/bash',['tools/install.sh','--dry-run'],{encoding:'utf8',env:{...process.env,PATH:dir}});
+  assert.equal(r.status,0,r.stderr);
+  if(scenario==='suitable') assert.doesNotMatch(r.stdout,/\bnodejs\b/);
+  else assert.match(r.stdout,/\bnodejs npm\b/);
+ }finally{fs.rmSync(dir,{recursive:true});}
+});
 function run(args, env) { return spawnSync(process.execPath, [script.pathname, ...args], {encoding:'utf8', env:{...process.env, ...env}}); }
 test('missing tools are explicit JSON failures without creating files', () => {
  const dir=fs.mkdtempSync(path.join(process.cwd(),'.test-doctor-'));
