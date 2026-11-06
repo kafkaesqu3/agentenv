@@ -10,8 +10,11 @@ for environment in \
     echo "agentenv: missing environment: $environment; provision this configuration before launching." >&2
     exit 1
   fi
+  # shellcheck source=/dev/null
   . "$environment"
 done
+
+bash "$(dirname "${BASH_SOURCE[0]}")/link-skills.sh"
 
 if [[ $# -eq 0 ]]; then set -- bash; fi
 exec "$@"
