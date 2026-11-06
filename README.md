@@ -65,6 +65,7 @@ environment file is missing. Configuration-directory overrides follow the native
 installer conventions and require provisioning first; startup never rewrites
 configuration. Persistent configurations do not automatically receive later image
 updates; apply `/opt/agentenv/install.sh --config-only` deliberately when needed.
+At launch the entrypoint only symlinks skills from `~/.agents/skills/<name>` into Claude's `skills/` directory (Codex and OpenCode read `~/.agents/skills` natively).
 
 Downstream images add their own task-specific dependencies:
 
