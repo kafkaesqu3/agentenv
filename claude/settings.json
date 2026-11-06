@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_FEEDBACK_COMMAND": "1",
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    "CLAUDE_CODE_SEND_FEEDBACK": "0",
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN": "1"
+  },
+  "attribution": { "commit": "", "pr": "" },
+  "includeCoAuthoredBy": false,
+  "tui": "default",
+  "cleanupPeriodDays": 3650
+}

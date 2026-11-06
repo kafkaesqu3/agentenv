@@ -1,0 +1,5 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "session": { "sidebar": "auto", "thinking": "show", "tps": true },
+  "mini": { "footer": "show", "thinking": "show", "turn_summary": "show", "replay": true }
+}

@@ -1,0 +1,21 @@
+# Task-independent baseline. No model, provider, sandbox, or workflow selection.
+developer_instructions = "Do not add agent or AI attribution to git commits or pull requests: no Co-authored-by trailers, Generated with lines, or agent signatures."
+
+[analytics]
+enabled = false
+
+[feedback]
+enabled = false
+
+[history]
+persistence = "save-all"
+
+[tui]
+alternate_screen = "never"
+status_line = ["model-with-reasoning", "context-remaining", "context-used", "five-hour-limit", "weekly-limit", "git-branch", "used-tokens", "total-input-tokens", "total-output-tokens", "thread-id"]
+
+[otel]
+log_user_prompt = false
+exporter = "none"
+trace_exporter = "none"
+metrics_exporter = "none"
