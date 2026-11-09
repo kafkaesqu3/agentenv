@@ -38,8 +38,7 @@ for agent in "${agents[@]}"; do
   seen+="$agent "
   bash "$root/$agent/install.sh" ${options[@]+"${options[@]}"}
   if ! $config_only; then
-    if [[ "$agent" == claude ]]; then export PATH="$HOME/.local/bin:$PATH"
-    else export PATH="$(npm prefix --global)/bin:$PATH"; fi
+    export PATH="$HOME/.local/bin:$PATH"
   fi
 done
 if ! $config_only; then

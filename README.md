@@ -84,7 +84,10 @@ package managers are **Homebrew on macOS**, **apt on Debian/Ubuntu (including
 WSL)**, and **WinGet on native Windows**. Install the package manager first.
 Linux system-package installation requires root or sudo; Windows packages may
 request elevation. Individual agent installers and `--skip-tools` require
-**Node.js 22+ and npm**, with a writable npm global prefix.
+**Node.js 22+ and npm**. Bash agent installers use `~/.local` as an explicit
+npm prefix, so agent installation needs no sudo and leaves npm configuration
+unchanged. Native PowerShell installs use the configured npm global prefix,
+which must be writable.
 
 ```bash
 ./install.sh                         # install/update all three
@@ -174,6 +177,10 @@ and configuration/access checks. Records never overwrite existing files.
 Configuration-only runs create no manifest. These inventories explain what was
 resolved; they are not lockfiles or reproducible-build guarantees. Keep them
 with exported image artifacts. Manifests contain local paths but no credentials.
+
+Installers generate shell assets for the invoking installer only: Bash writes
+`.sh` files and PowerShell writes `.ps1` files. Older generated files for the
+other shell are left untouched.
 
 Tool installation writes shared `env.sh`/`env.ps1` files in the state directory
 and managed profile blocks, independently of agent installation. Existing profile

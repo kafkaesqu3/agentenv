@@ -35,8 +35,9 @@ install_agent() {
       codex|opencode)
         command -v npm >/dev/null || { echo 'npm is required.' >&2; return 1; }
         if [[ "$agent" == codex ]]; then package='@openai/codex@latest'; else package='@opencode/cli@latest'; fi
-        npm install --global "$package"
-        prefix="$(npm prefix --global)/bin"
+        # Keep native installs writable without sudo or changing npm configuration.
+        npm install --global --prefix "$HOME/.local" "$package"
+        prefix="$HOME/.local/bin"
         binary="$prefix/$agent"
         ;;
     esac

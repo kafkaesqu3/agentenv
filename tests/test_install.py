@@ -35,7 +35,7 @@ class InstallTests(unittest.TestCase):
         self.env.pop("OPENCODE_CONFIG", None)
         self.mock("npm", 'printf "npm %s\\n" "$*" >> "$CALLS"\n'
                   'if [ "${FAIL_NPM:-}" = 1 ]; then exit 42; fi\n'
-                  'if [ "$1" = prefix ]; then printf "%s\\n" "$HOME"; fi\n')
+                  'if [ "$1" = install ]; then mkdir -p "$HOME/.local/bin"; cp "$HOME/bin/codex" "$HOME/bin/opencode" "$HOME/.local/bin/"; fi\n')
         for agent in ("codex", "opencode", "claude"):
             self.mock(agent, 'printf "mock 1.0\\n"\n')
         native = self.home / '.local/bin'
@@ -61,12 +61,31 @@ class InstallTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
         return result
 
+    def test_bash_generates_no_powershell_files(self):
+        self.env['AGENTENV_TOOL_PATH'] = str(self.bin)
+        self.run_install('--all')
+        for target in (self.home / 'claude', self.home / 'codex', self.home / 'config/opencode'):
+            self.assertTrue((target / 'env.sh').exists())
+            self.assertEqual(list(target.glob('*.ps1')), [])
+        result = subprocess.run(['node', str(ROOT / 'lib/tools-env.mjs')], env=self.env,
+                                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.home / '.local/state/agentenv/env.ps1').exists())
+
+    def test_npm_installs_in_user_prefix(self):
+        self.mock('npm', 'test "$1 $2 $3" = "install --global --prefix" || exit 13\n'
+                  'test "$4" = "$HOME/.local" || exit 13\n'
+                  'mkdir -p "$4/bin"\n'
+                  'case "$5" in @openai/*) agent=codex ;; *) agent=opencode ;; esac\n'
+                  'cp "$HOME/bin/$agent" "$4/bin/$agent"\n')
+        self.run_install('--codex', '--opencode')
+
     def test_all_requests_latest_every_run(self):
         for _ in range(2):
             self.run_install()
         calls = self.calls.read_text()
-        self.assertEqual(calls.count("npm install --global @openai/codex@latest"), 2)
-        self.assertEqual(calls.count("npm install --global @opencode/cli@latest"), 2)
+        self.assertEqual(calls.count(f"npm install --global --prefix {self.home}/.local @openai/codex@latest"), 2)
+        self.assertEqual(calls.count(f"npm install --global --prefix {self.home}/.local @opencode/cli@latest"), 2)
         self.assertEqual(calls.count("claude-install latest"), 2)
 
     def test_root_provisions_tools_before_selected_agent_and_records_manifest(self):
