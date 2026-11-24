@@ -1,17 +1,11 @@
 # syntax=docker/dockerfile:1
-ARG BASE_IMAGE=node:24-trixie-slim
+ARG BASE_IMAGE=docker.io/dhi/sbx-templates:shell@sha256:41e7871fbea57dedcac15353f983b93d5fc584684577466e8eae4da160e3189e
 FROM ${BASE_IMAGE}
 
 USER root
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends sudo ca-certificates \
-    && groupmod --new-name agent node \
-    && usermod --login agent --home /home/agent --move-home --shell /bin/bash node \
-    && printf 'agent ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/agent \
-    && chmod 0440 /etc/sudoers.d/agent \
-    && visudo -cf /etc/sudoers.d/agent \
-    && mkdir -p /workspace \
-    && chown agent:agent /workspace \
+    && apt-get install -y --no-install-recommends fd-find \
+    && install -d -o agent -g agent /workspace \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/agentenv/
@@ -19,15 +13,13 @@ RUN chmod 0755 /opt/agentenv/docker/entrypoint.sh
 
 ENV HOME=/home/agent \
     NPM_CONFIG_PREFIX=/home/agent/.local \
-    PATH=/home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    PATH=/home/agent/.local/bin:${PATH}
 USER agent
 WORKDIR /workspace
-RUN bash /opt/agentenv/install.sh \
+RUN node /opt/agentenv/lib/tools-env.mjs \
+    && npm_config_allow_scripts=@opencode/cli bash /opt/agentenv/install.sh --skip-tools \
     && /opt/agentenv/docker/entrypoint.sh bash /opt/agentenv/doctor.sh \
-    && npm cache clean --force \
-    && rm -rf /home/agent/.cache /home/agent/.codex/tmp \
-    && sudo apt-get clean \
-    && sudo rm -rf /var/lib/apt/lists/*
+    && rm -rf /home/agent/.npm/_cacache /home/agent/.cache /home/agent/.codex/tmp
 
 ENTRYPOINT ["/opt/agentenv/docker/entrypoint.sh"]
 CMD ["bash"]

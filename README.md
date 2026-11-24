@@ -17,7 +17,8 @@ persistent configuration volumes need a configuration-only run to receive it.
 
 ## Docker image: agentenv-base
 
-The shared image uses `node:24-trixie-slim` (Debian), includes all three agents,
+The shared image uses Docker Hardened Images' Debian 13 shell sandbox template
+(`docker.io/dhi/sbx-templates:shell`, pinned by digest), includes all three agents,
 and runs as `agent` (UID/GID 1000) with passwordless sudo. Its home is
 `/home/agent`, working directory is `/workspace`, and default command is Bash.
 
@@ -32,13 +33,12 @@ docker run --rm --user root agentenv-base bash -c 'id'
 bash tests/container-smoke.sh agentenv-base
 ```
 
-Use `docker build --pull --no-cache -t agentenv-base .` to refresh the parent,
-system packages, and latest agent releases. Normal Docker cache reuse does not
-check upstream agent versions. Override the parent with `--build-arg
-BASE_IMAGE=node:24-trixie-slim`; alternatives must provide Debian apt, Node 22+,
-npm, and the parent's `node` user/group. These are moving version tags; the
-inventory under `/home/agent/.local/state/agentenv/manifests/` records what each
-build installed. Doctor is also a mandatory build health check.
+Use `docker build --no-cache -t agentenv-base .` to refresh system packages and
+agents. Update the parent digest in the Dockerfile to refresh the hardened
+template. The template supplies the `agent` account, sudo, Node/npm and shared
+tools. The build adds fd, installs the three agents, applies configuration and
+runs doctor. Installed versions are recorded under
+`/home/agent/.local/state/agentenv/manifests/`.
 
 The entrypoint loads shared and agent environment files before executing commands.
 `docker exec` and downstream Dockerfile `RUN` instructions bypass it; invoke
@@ -76,6 +76,58 @@ RUN apt-get update && apt-get install -y --no-install-recommends YOUR_PACKAGES \
     && rm -rf /var/lib/apt/lists/*
 USER agent
 ```
+
+## Docker Sandboxes microVM
+
+The repository root is a v3 workload kit for local Docker Sandboxes. It uses the
+same Dockerfile and starts Bash. From the agentenv checkout, run the following
+with the project directory you want available inside the VM:
+
+```bash
+# Once on the host, for a ChatGPT subscription (skip if already stored)
+sbx secret set openai --oauth
+
+# Create the sandbox and open its shell
+sbx run --name my-project "$PWD" /absolute/path/to/project
+
+# Inside the shell, start codex, claude or opencode. Exit the CLI to return to Bash.
+codex
+```
+
+Use `sbx secret set openai` for an OpenAI API key. Claude Code supports
+`sbx secret set anthropic --oauth` and `sbx secret set anthropic` for an
+Anthropic API key. Both services are optional. OpenCode uses the OpenAI
+credential through its own provider configuration. All agents in one VM share
+its network access and can use its authorized providers.
+
+On first interactive creation, approve the credential mechanism and domains
+you intend to use. Docker records this approval per service and domain in
+`~/.config/sbx/credentials.yaml`. Storing a credential alone is insufficient
+for a custom kit. With unattended creation, sbx can start the VM while
+withholding unapproved credentials. Approve bindings before creating that VM.
+The sandbox proxy holds the real credentials. The guest receives placeholders
+and auth-specific configuration. The host's agent home directories are never
+required as mounts. [Docker credential bindings](https://docs.docker.com/ai/sandboxes/configuration/credentials/#credential-bindings)
+
+Reopen the same VM with `sbx run --name my-project`. Kit installation runs at
+creation. Regular shell startup loads the baked configuration. A new VM picks up
+image updates and a changed host authentication mode. To invoke an agent directly
+with the same environment, use
+`sbx exec -it my-project /opt/agentenv/docker/entrypoint.sh codex`.
+
+Local kit sources build on first use. To distribute a prebuilt kit, build **the
+descriptor** from the repository root and publish it under your own registry name:
+
+```bash
+docker buildx build -f spec.yaml -t "$KIT_REF" --push .
+sbx run --name my-project "$KIT_REF" /absolute/path/to/project
+```
+
+Set `KIT_REF` to your full registry reference. For private registry pulls, use
+the host-side `sbx secret set --registry` flow. The Dockerfile build by itself
+produces a regular Docker image. Building the descriptor also packages the
+network, credential and lifecycle declarations read by sbx.
+[Build and distribute kits](https://docs.docker.com/ai/sandboxes/customize/author/distribute/)
 
 ## Native installation
 

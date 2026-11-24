@@ -24,3 +24,5 @@
 !opencode/env.ps1
 !docker/
 !docker/entrypoint.sh
+!docker/link-skills.sh
+!docker/sbx-auth.py

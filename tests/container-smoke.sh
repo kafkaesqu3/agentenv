@@ -19,15 +19,14 @@ docker run --rm "$image" bash -ec '
   opencode --version
   bash /opt/agentenv/doctor.sh
   test -n "$(ls "$HOME/.local/state/agentenv/manifests/")"
-  test "$(command -v node)" = /usr/local/bin/node
-  ! dpkg-query -W nodejs >/dev/null 2>&1
+  grep -Fq "Docker Hardened Images (Debian)" /etc/os-release
 '
 docker run --rm --user root "$image" bash -ec 'test "$(id -u)" = 0; codex --version'
 docker run --rm "$image" bash -ec 'test "$1" = "a b"; test "$2" = ""' -- 'a b' ''
 status=0
 docker run --rm "$image" bash -c 'exit 37' || status=$?
 test "$status" = 37
-printf 'test "$BASH_VERSION" != ""\n' | docker run --rm -i "$image"
+printf '%s\n' "test -n \"\$BASH_VERSION\"" | docker run --rm -i "$image"
 scratch=$(mktemp -d "${PWD}/.test-mount-XXXXXX")
 trap 'rmdir "$scratch"' EXIT
 before=$(ls -nd "$scratch")

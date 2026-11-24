@@ -46,7 +46,9 @@ test('PATH duplicates are reported and the first executable is probed',()=>{
  try {
   const bins=['first','second'].map(n=>path.join(dir,n));
   for(const bin of bins){fs.mkdirSync(bin);fs.writeFileSync(path.join(bin,'git'),'#!/bin/sh\necho git-test\n',{mode:0o755});}
-  const r=run(['--json','--agents','none'],{HOME:dir,PATH:bins.join(path.delimiter)});
+  const alias = path.join(dir, 'alias');
+  fs.symlinkSync(bins[0], alias, 'dir');
+  const r=run(['--json','--agents','none'],{HOME:dir,PATH:[...bins,alias].join(path.delimiter)});
   const report=JSON.parse(r.stdout),git=report.tools.find(t=>t.name==='git');
   assert.equal(git.path,path.join(bins[0],'git')); assert.equal(git.alternatives.length,1);
   assert.ok(report.warnings.some(w=>w.startsWith('git:')));
