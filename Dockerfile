@@ -9,7 +9,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /opt/agentenv/
-RUN chmod 0755 /opt/agentenv/docker/entrypoint.sh
+RUN chmod 0755 /opt/agentenv/docker/entrypoint.sh \
+    && install -m 0755 /opt/agentenv/docker/claude-yolo /opt/agentenv/docker/codex-yolo /usr/local/bin/
 
 ENV HOME=/home/agent \
     NPM_CONFIG_PREFIX=/home/agent/.local \

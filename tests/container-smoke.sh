@@ -16,6 +16,8 @@ docker run --rm "$image" bash -ec '
   test "$(cat "$HOME/.claude/CLAUDE.md")" = "@AGENTS.md"
   claude --version
   codex --version
+  claude-yolo --help >/dev/null
+  codex-yolo --help >/dev/null
   opencode --version
   bash /opt/agentenv/doctor.sh
   test -n "$(ls "$HOME/.local/state/agentenv/manifests/")"

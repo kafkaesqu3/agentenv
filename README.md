@@ -45,6 +45,12 @@ The entrypoint loads shared and agent environment files before executing command
 `/opt/agentenv/docker/entrypoint.sh COMMAND...` when those environments are needed.
 Core executable paths are also set in image metadata.
 
+Run `claude-yolo` or `codex-yolo` inside the container, or pass either command
+directly to `docker run`. Both forward CLI arguments and skip agent permission
+prompts. Claude uses bare mode, which uses API-key authentication for Anthropic.
+Codex disables its internal sandbox, hooks, plugins, and configured developer
+and project instructions.
+
 Mount workspaces explicitly. Startup preserves mount ownership; on Linux the
 mounted files must be accessible to UID/GID 1000, or you can explicitly run as
 root. Root execution keeps the image's `/home/agent` environment. No credentials
